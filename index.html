@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Buster</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>Bug Buster <span id="level-display">Lvl: 1</span></h1>
+            <div id="score">Score: 0</div>
+        </header>
+        <div id="game-area" style="position: relative; display: inline-block;">
+            <canvas id="gameCanvas" width="400" height="360"></canvas>
+            
+            <div id="menu-screen" class="overlay active">
+                <h2>Bug Buster</h2>
+                <button onclick="startGame()">Start Game</button>
+            </div>
+            
+            <div id="game-over-screen" class="overlay">
+                <h2>GAME OVER</h2>
+                <p>O Bug pegou você!</p>
+                <button onclick="resetGame()">Tentar Novamente</button>
+            </div>
+
+            <div id="victory-screen" class="overlay">
+                <h2>Fase Concluída!</h2>
+                <p>Código limpo com sucesso.</p>
+                <button onclick="startNextLevel()">Próxima Fase</button>
+            </div>
+        </div>
+        <div id="instructions">
+            Use as setas do teclado para mover.<br>
+            Colete os pontos (linhas de código) para ganhar pontos.
+        </div>
+            Use as setas do teclado para mover.<br>
+            Colete os pontos (linhas de código) para ganhar pontos.
+        </div>
+    </div>
+    
+    <script src="logic.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

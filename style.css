@@ -1,0 +1,101 @@
+body {
+    background-color: #0a0a0a;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#game-container {
+    text-align: center;
+    border: 2px solid #00ff00;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #111;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#score, #level-display {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+canvas {
+    background-color: #000;
+    border: 1px solid #00ff00;
+    image-rendering: pixelated;
+    display: block;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.overlay h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+.overlay p {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.overlay button {
+    background: #00ff00;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 0 10px #00ff00;
+}
+
+.overlay button:hover {
+    background: #fff;
+    box-shadow: 0 0 15px #fff;
+}
+
+#instructions {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #00aa00;
+}
