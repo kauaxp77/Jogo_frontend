@@ -8,39 +8,93 @@
 </head>
 <body>
     <div id="game-container">
-        <header>
-            <h1>Bug Buster <span id="level-display">Lvl: 1</span></h1>
-            <div id="score">Score: 0</div>
-        </header>
-        <div id="game-area" style="position: relative; display: inline-block;">
-            <canvas id="gameCanvas" width="400" height="360"></canvas>
-            
-            <div id="menu-screen" class="overlay active">
-                <h2>Bug Buster</h2>
-                <button onclick="startGame()">Start Game</button>
+        <header class="hud">
+            <div class="brand">
+                <h1>BUG<span>BUSTER</span></h1>
+                <div id="level-display">Fase 1 · localhost</div>
             </div>
-            
+            <div class="stats">
+                <div class="stat"><label>SCORE</label><span id="score">0</span></div>
+                <div class="stat"><label>RECORDE</label><span id="highscore">0</span></div>
+                <div class="stat"><label>VIDAS</label><span id="lives"></span></div>
+            </div>
+        </header>
+
+        <div id="game-area">
+            <canvas id="gameCanvas" width="608" height="480"></canvas>
+            <div id="toast"></div>
+
+            <div id="menu-screen" class="overlay active">
+                <h2 class="glitch" data-text="BUG BUSTER">BUG BUSTER</h2>
+                <p class="tagline">Colete o código. Extermine os bugs. Não faça deploy na sexta.</p>
+                <div class="menu-grid">
+                    <div class="legend">
+                        <h3>&gt; personagens</h3>
+                        <ul>
+                            <li><i class="dot" style="--c:#2f8cff"></i><b>Você</b> o programador</li>
+                            <li><i class="dot" style="--c:#ff3355"></i><b>Ransomware</b> persegue você</li>
+                            <li><i class="dot" style="--c:#b04dff"></i><b>Spyware</b> vaga sem rumo</li>
+                            <li><i class="dot" style="--c:#ff4fd8"></i><b>Trojan</b> arma emboscadas</li>
+                            <li><i class="dot" style="--c:#00e5ff"></i><b>Worm</b> patrulha a área</li>
+                        </ul>
+                    </div>
+                    <div class="legend">
+                        <h3>&gt; itens</h3>
+                        <ul>
+                            <li><span class="ico">01</span>Linha de código +10</li>
+                            <li><span class="ico">☕</span>Café: devore bugs!</li>
+                            <li><span class="ico">⏸</span>Breakpoint: congela</li>
+                            <li><span class="ico">🍕</span>Pizza +500</li>
+                        </ul>
+                    </div>
+                </div>
+                <button id="start-btn">▶ INICIAR <small>[Enter]</small></button>
+                <div class="leaderboard"><h3>&gt; top 5 recordes</h3><ol id="leaderboard-menu"></ol></div>
+            </div>
+
+            <div id="pause-screen" class="overlay">
+                <h2>⏸ PAUSADO</h2>
+                <p>Hora do cafezinho. Pressione <kbd>P</kbd> para voltar.</p>
+                <button id="resume-btn">▶ CONTINUAR</button>
+            </div>
+
             <div id="game-over-screen" class="overlay">
-                <h2>GAME OVER</h2>
-                <p>O Bug pegou você!</p>
-                <button onclick="resetGame()">Tentar Novamente</button>
+                <h2 class="danger">GAME OVER</h2>
+                <p id="gameover-msg" class="terminal-line">Funcionava na minha máquina!</p>
+                <div class="final-score">Pontuação final: <b id="final-score">0</b></div>
+                <div id="new-record" class="badge">🏆 NOVO RECORDE!</div>
+                <div class="btn-row">
+                    <button id="retry-btn">↻ TENTAR NOVAMENTE <small>[Enter]</small></button>
+                    <button id="menu-btn" class="ghost">MENU</button>
+                </div>
+                <div class="leaderboard"><h3>&gt; top 5 recordes</h3><ol id="leaderboard-over"></ol></div>
             </div>
 
             <div id="victory-screen" class="overlay">
-                <h2>Fase Concluída!</h2>
-                <p>Código limpo com sucesso.</p>
-                <button onclick="startNextLevel()">Próxima Fase</button>
+                <h2>FASE CONCLUÍDA!</h2>
+                <p class="terminal-line">$ git commit -m "<span id="commit-msg">fix: bugs exterminados</span>"</p>
+                <ul id="level-stats" class="level-stats"></ul>
+                <button id="next-btn">PRÓXIMA FASE ▶ <small>[Enter]</small></button>
             </div>
         </div>
-        <div id="instructions">
-            Use as setas do teclado para mover.<br>
-            Colete os pontos (linhas de código) para ganhar pontos.
+
+        <div id="power-bar"><div id="power-fill"></div><span id="power-label"></span></div>
+
+        <div id="touch-controls">
+            <button data-dir="up">▲</button>
+            <button data-dir="left">◀</button>
+            <button data-dir="down">▼</button>
+            <button data-dir="right">▶</button>
         </div>
-            Use as setas do teclado para mover.<br>
-            Colete os pontos (linhas de código) para ganhar pontos.
-        </div>
+
+        <footer id="instructions">
+            <span><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> mover</span>
+            <span><kbd>P</kbd> pausar</span>
+            <span><kbd>M</kbd> som</span>
+            <span id="mute-indicator">🔊</span>
+        </footer>
     </div>
-    
+
     <script src="logic.js"></script>
     <script src="game.js"></script>
 </body>

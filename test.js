@@ -1,98 +1,173 @@
+// Testes da lógica do Bug Buster.
+// Navegador: abra test.html | Node: node test.js
+if (typeof module !== 'undefined' && module.exports) {
+    ({ GameLogic, TILE, MAPS } = require('./logic.js'));
+}
+
+let failures = 0;
+
 function assert(condition, message) {
+    if (!condition) failures++;
     if (typeof document !== 'undefined') {
         const resultsDiv = document.getElementById('results');
         const p = document.createElement('p');
-        if (condition) {
-            p.textContent = '✅ PASS: ' + message;
-            p.className = 'pass';
-        } else {
-            p.textContent = '❌ FAIL: ' + message;
-            p.className = 'fail';
-        }
+        p.textContent = (condition ? '✅ PASS: ' : '❌ FAIL: ') + message;
+        p.className = condition ? 'pass' : 'fail';
         resultsDiv.appendChild(p);
+    } else if (condition) {
+        console.log('✅ PASS: ' + message);
     } else {
-        if (condition) {
-            console.log('✅ PASS: ' + message);
-        } else {
-            console.error('❌ FAIL: ' + message);
-        }
+        console.error('❌ FAIL: ' + message);
     }
 }
 
+// Avança a simulação até o jogador dar N passos
+function stepPlayer(game, n = 1) {
+    for (let i = 0; i < n * game.playerStepTicks; i++) game.tick();
+}
+
 function runTests() {
-    console.log("Iniciando testes...");
-    
+    console.log('Iniciando testes...');
+
     try {
-        const game = new GameLogic();
-        assert(game !== undefined, "GameLogic instanciado");
-        
-        assert(game.grid[0][0] === 1, "Posição 0,0 deve ser parede (1)");
-        assert(game.player.x === 1 && game.player.y === 1, "Jogador deve começar na posição 1,1");
-        
-        game.movePlayer(1, 0); 
-        assert(game.player.x === 2 && game.player.y === 1, "Jogador moveu para direita (2,1)");
-        
-        game.movePlayer(0, -1);
-        assert(game.player.x === 2 && game.player.y === 1, "Jogador NÃO moveu para cima devido à parede");
+        // ---------- Mapas ----------
+        MAPS.forEach((map, i) => {
+            const widths = new Set(map.rows.map(r => r.length));
+            assert(widths.size === 1 && map.rows.length === 15, `Mapa ${i + 1} (${map.name}) é retangular 19x15`);
+            const g = new GameLogic();
+            g.level = i + 1;
+            g.loadLevel();
+            const dist = g.distanceMap(g.playerStart.x, g.playerStart.y);
+            let unreachable = 0;
+            g.grid.forEach((row, y) => row.forEach((t, x) => {
+                if ((t === TILE.DOT || t === TILE.COFFEE) && dist[y][x] === Infinity) unreachable++;
+            }));
+            assert(unreachable === 0, `Mapa ${i + 1}: todas as linhas de código são alcançáveis`);
+            assert(g.spawns.every(s => dist[s.y][s.x] !== Infinity), `Mapa ${i + 1}: bugs conseguem sair do spawn`);
+        });
 
-        // Testa consumo de item na posição (3,1)
-        game.movePlayer(1, 0); // x=3, y=1
-        assert(game.grid[1][3] === 0, "Item na posição 3,1 foi consumido");
-        assert(game.score === 20, "Score incrementou para 20 (pegou em 2,1 e 3,1)");
+        // ---------- Estado inicial ----------
+        const game = new GameLogic(() => 0.5);
+        assert(game.grid[0][0] === TILE.WALL, 'Posição 0,0 deve ser parede');
+        assert(game.player.x === 9 && game.player.y === 11, 'Jogador começa no ponto P do mapa (9,11)');
+        assert(game.lives === 3, 'Jogador começa com 3 vidas');
+        assert(game.enemies.length === 2, 'Fase 1 tem 2 bugs (Ransomware e Spyware)');
 
-        // Testa Reset
+        // ---------- RN001 - Paredes ----------
+        game.movePlayer(0, 1); // (9,12) é parede
+        assert(game.player.x === 9 && game.player.y === 11, 'RN001: jogador NÃO atravessa parede');
+
+        // ---------- Coleta ----------
+        game.movePlayer(1, 0); // (10,11) tem ponto
+        assert(game.player.x === 10, 'Jogador moveu para a direita');
+        assert(game.grid[11][10] === TILE.EMPTY, 'Linha de código foi consumida');
+        assert(game.score === 10, 'Score incrementou 10 pontos');
+
+        // ---------- Movimento contínuo com buffer ----------
         game.reset();
-        assert(game.player.x === 1 && game.player.y === 1, "Reset colocou jogador na posição original");
-        assert(game.score === 0, "Reset zerou o score");
-        assert(game.grid[1][3] === 2, "Reset restaurou o item na posição 3,1");
-        
-        // Testa Vitória (vamos simular coletando tudo)
-        assert(game.isWin() === false, "isWin deve ser falso no início");
-        for(let y=0; y<game.grid.length; y++) {
-            for(let x=0; x<game.grid[y].length; x++) {
-                if(game.grid[y][x] === 2) game.grid[y][x] = 0;
-            }
-        }
-        assert(game.isWin() === true, "isWin deve ser verdadeiro quando acabar as bolinhas");
+        game.setDirection('left');
+        stepPlayer(game, 2);
+        assert(game.player.x === 7 && game.player.y === 11, 'Movimento contínuo: andou 2 casas para a esquerda');
+        game.setDirection('up'); // (7,10) é parede: fica guardado no buffer
+        stepPlayer(game, 1);
+        assert(game.player.x === 6 && game.player.dir === 'left', 'Buffer: direção bloqueada não interrompe o movimento');
+        stepPlayer(game, 3); // (5,10) é parede, (4,10) está livre
+        assert(game.player.dir === 'up' && game.player.x === 4 && game.player.y === 10, 'Buffer: vira para cima assim que possível');
 
-        // Testa Avanço de Nível
-        let lvlInicial = game.level;
+        // ---------- Reset ----------
+        game.reset();
+        assert(game.score === 0 && game.level === 1, 'Reset zera score e volta para a fase 1');
+        assert(game.grid[11][10] === TILE.DOT, 'Reset restaura o mapa');
+
+        // ---------- Vitória e próxima fase (RF05) ----------
+        assert(game.isWin() === false, 'isWin é falso no início');
+        game.grid.forEach(row => row.forEach((t, x) => { if (t === TILE.DOT) row[x] = TILE.EMPTY; }));
+        assert(game.isWin() === true, 'isWin é verdadeiro quando acabam as linhas de código');
         game.score = 500;
         game.nextLevel();
-        assert(game.level === lvlInicial + 1, "nextLevel incrementou o nível");
-        assert(game.score === 500, "nextLevel não deve zerar a pontuação global");
-        assert(game.grid[1][3] === 2, "nextLevel restaurou o mapa");
+        assert(game.level === 2, 'nextLevel incrementa o nível');
+        assert(game.score === 500, 'nextLevel não zera a pontuação');
+        assert(game.map.name === 'staging', 'Fase 2 usa o mapa staging');
+        assert(game.enemies.length === 3, 'Fase 2 adiciona o Trojan');
+        const lvl1 = new GameLogic();
+        assert(game.enemyStepTicks(game.enemies[0]) < lvl1.enemyStepTicks(lvl1.enemies[0]), 'Bugs ficam mais rápidos a cada fase');
 
-        // Testa Túnel
+        // ---------- RN005 - Túnel ----------
         game.reset();
-        game.grid[1][0] = 0; // Abre túnel na esquerda
-        game.grid[1][9] = 0; // Abre túnel na direita
-        game.player.x = 0; // Coloca na borda esquerda
-        game.player.y = 1;
-        game.movePlayer(-1, 0); // Move pra esquerda
-        assert(game.player.x === 9, "Túnel: Saiu pela esquerda e voltou na direita (x=9)");
-        
-        game.movePlayer(1, 0); // Move pra direita
-        assert(game.player.x === 0, "Túnel: Saiu pela direita e voltou na esquerda (x=0)");
+        game.player.x = 0;
+        game.player.y = 7;
+        game.movePlayer(-1, 0);
+        assert(game.player.x === 18, 'Túnel: saiu pela esquerda e apareceu na direita');
+        game.movePlayer(1, 0);
+        assert(game.player.x === 0, 'Túnel: saiu pela direita e apareceu na esquerda');
 
-        // Testa PowerUp (Café)
+        // ---------- RF04 - Café ----------
         game.reset();
-        game.grid[1][2] = 3; // Coloca café em (2,1)
-        game.movePlayer(1, 0); // Vai para (2,1)
-        assert(game.player.poweredUp === true, "Pegou café: Player deve estar poweredUp");
-        assert(game.player.powerTimer > 0, "Timer de poder deve ser maior que 0");
-        assert(game.score === 50, "Pegou café: Score incrementou 50 pontos");
-
-        // Simula tick para decrementar o poder
-        let initialTimer = game.player.powerTimer;
+        game.grid[11][10] = TILE.COFFEE;
+        game.movePlayer(1, 0);
+        assert(game.player.poweredUp === true, 'Café: jogador fica PoweredUp');
+        assert(game.score === 50, 'Café: +50 pontos');
+        const t0 = game.player.powerTimer;
         game.tick();
-        assert(game.player.powerTimer === initialTimer - 1, "Tick diminui o timer do powerUp");
+        assert(game.player.powerTimer === t0 - 1, 'Tick diminui o timer do café');
 
+        // ---------- RN003 - Comer bugs com combo ----------
+        const [bugA, bugB] = game.enemies;
+        bugA.x = game.player.x; bugA.y = game.player.y; bugA.waitTicks = 999;
+        game.checkCollisions();
+        assert(game.score === 150, 'RN003: primeiro bug comido vale +100');
+        assert(bugA.x === bugA.spawnX && bugA.y === bugA.spawnY, 'RN003: bug comido volta para o spawn');
+        bugB.x = game.player.x; bugB.y = game.player.y; bugB.waitTicks = 999;
+        game.checkCollisions();
+        assert(game.score === 350, 'Combo: segundo bug vale +200');
+
+        // ---------- RN002 - Perder vida ----------
+        game.reset();
+        const bug = game.enemies[0];
+        bug.x = game.player.x; bug.y = game.player.y; bug.waitTicks = 999;
+        game.checkCollisions();
+        assert(game.lives === 2, 'RN002: tocar num bug sem café tira 1 vida');
+        assert(game.player.invulnerable > 0, 'Após renascer o jogador fica invulnerável por um instante');
+        game.player.invulnerable = 0;
+        game.lives = 1;
+        bug.x = game.player.x; bug.y = game.player.y;
+        game.checkCollisions();
+        assert(game.gameOver === true, 'RN002: sem vidas a partida é encerrada');
+
+        // ---------- Breakpoint ----------
+        game.reset();
+        game.grid[11][10] = TILE.FREEZE;
+        game.movePlayer(1, 0);
+        assert(game.frozenTimer > 0, 'Breakpoint congela os bugs');
+        const frozen = game.enemies[0];
+        frozen.waitTicks = 0;
+        const fx = frozen.x, fy = frozen.y;
+        for (let i = 0; i < 30; i++) game.tick();
+        assert(frozen.x === fx && frozen.y === fy, 'Bugs congelados não se movem');
+
+        // ---------- Vida extra ----------
+        game.reset();
+        game.addScore(5000);
+        assert(game.lives === 4, 'Vida extra a cada 5000 pontos');
+
+        // ---------- IA ----------
+        game.reset();
+        const chaser = game.enemies[0];
+        chaser.waitTicks = 0;
+        const before = game.distanceMap(game.player.x, game.player.y)[chaser.y][chaser.x];
+        for (let i = 0; i < 5; i++) game.moveEnemy(chaser);
+        const after = game.distanceMap(game.player.x, game.player.y)[chaser.y][chaser.x];
+        assert(after < before, 'Ransomware se aproxima do jogador (BFS)');
     } catch (e) {
-        assert(false, "Erro ao executar os testes: " + e.stack);
+        assert(false, 'Erro ao executar os testes: ' + e.stack);
     }
+
+    console.log(failures === 0 ? '\nTodos os testes passaram!' : `\n${failures} teste(s) falharam.`);
+    if (typeof process !== 'undefined' && process.exitCode !== undefined) process.exitCode = failures ? 1 : 0;
 }
 
 if (typeof window !== 'undefined') {
     window.onload = runTests;
+} else {
+    runTests();
 }
